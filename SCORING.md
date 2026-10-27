@@ -109,3 +109,14 @@ surfaces are skipped when requested; a street approach farther than 120 m is
 rejected. The full native turn/access processing remains in service mode. Bike
 and Car never use this walking graph; they hand off to Google Maps in the public
 preview until a native API is configured. This distinction is visible in the UI.
+
+## v0.8 lighting map layer
+
+The selected route's original evidence geometry is displayed as a 13 px visual
+parallel offset, preserving the route's green/blue identity and export geometry.
+`yes`, `24/7`, `automatic`, and `sunset-sunrise` map to Tagged lit; only `no` maps
+to Tagged unlit. Missing, limited, unrecognized and ambiguous tags map to Unknown.
+Unknown is grey/dotted rather than an unlit assertion. The legend is length
+weighted, is independent of the scoring weights and describes mapped tags at any
+time of day. It is not a live streetlight reading. Toggling it does not reroute,
+change scores or reset map bounds. Only the selected route's lighting is shown.

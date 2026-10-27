@@ -1,3 +1,14 @@
+# v0.8 lighting layer
+
+- Added a Lighting toggle, enabled by default, alongside Places / Help / CCTV.
+- Parallel lighting strip on the selected route: amber solid (tagged lit),
+  charcoal dashed (tagged unlit), grey dotted (unknown).
+- On-map legend with length-weighted percentages, plus hover/tap tag details.
+- Uses existing route evidence; does not alter routing, scores or export geometry.
+- Continuous same-state geometry is merged without bridging gaps or mutating data.
+- Public browser routes retain source-way identifiers for lighting provenance.
+- Route selection and the existing identity colours remain intact.
+
 # v0.7 publication
 
 All v0.6 work and the final card-alignment fix are included. Public hosts without

@@ -129,3 +129,15 @@ body{padding-bottom:0}.site-header{height:64px;position:sticky;top:0;z-index:40;
 }
 
 .public-preview-note{display:flex;align-items:start;gap:9px;font-size:12px;line-height:1.7;padding:12px 15px;border:1px solid #dae5d1;background:#f0f5e9;border-radius:9px;margin:0 0 14px;color:#577052}.public-preview-note svg{flex-shrink:0;margin-top:3px}.empty-route-note{font-size:12px;line-height:1.8;padding:5px 3px;color:#6b806d}
+
+/* Street lighting is a parallel strip; route identity colours stay intact. */
+.lighting-legend{position:absolute;z-index:4;left:13px;bottom:24px;max-width:calc(100% - 26px);background:#fffefaf5;border:1px solid #dce4d6;border-radius:9px;padding:10px 12px;box-shadow:0 2px 12px #27432e12;pointer-events:none}
+.lighting-legend>div{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:8px}
+.lighting-legend strong{display:flex;align-items:center;gap:5px;font-size:11px;color:#4b6653}
+.lighting-legend>div>span{font-size:9px;color:#849080}
+.lighting-legend ul{display:flex;gap:17px;list-style:none;padding:0;margin:0;flex-wrap:wrap}
+.lighting-legend li{display:flex;align-items:center;gap:7px;font-size:10px;color:#66766a}
+.lighting-legend b{font-weight:600;color:#3f5647}
+.lighting-swatch{width:22px;height:0;display:block;flex-shrink:0;border-top:4px solid #d99a00}
+.lighting-swatch.unlit{border-top:4px dashed #374151}.lighting-swatch.unknown{border-top:4px dotted #8d99a7}
+@media(max-width:800px){.lighting-legend{left:9px;bottom:22px;max-width:calc(100% - 18px);padding:8px}.lighting-legend strong{font-size:10px}.lighting-legend>div{gap:9px;margin-bottom:7px}.lighting-legend>div>span{font-size:8px}.lighting-legend ul{gap:11px}.lighting-legend li{font-size:9px;gap:4px}.lighting-swatch{width:15px}}

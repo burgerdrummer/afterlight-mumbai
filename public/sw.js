@@ -1,6 +1,6 @@
 // Intentionally small offline footprint. Never cache journeys, API requests,
 // opening-hour data or map databases. Offline navigation shows public contacts.
-const CACHE='afterlight-help-v07';
+const CACHE='afterlight-help-v08';
 const root=new URL('./',self.location.href);
 const files=['offline.html','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png'];
 const urls=files.map(p=>new URL(p,root).href);

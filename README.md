@@ -17,6 +17,14 @@ The website can remain on ChatGPT Sites. Only the native routing service needs a
 separate suitable host to enable full multimodal comparisons publicly. See
 [HOSTING.md](HOSTING.md) for the architecture and remaining backend deployment work.
 
+## v0.8 lighting update
+
+Lighting is enabled by default as a parallel strip beside the selected route.
+Amber solid = tagged lit; charcoal dashes = tagged unlit; grey dots = unknown.
+The on-map legend reports length-weighted shares. Hover/tap the strip for the
+recorded tag and a source-way link where available. Route identity colours stay
+green/blue/purple. The display describes mapped tags, not live lighting operation.
+
 ## v0.7 release
 
 - Always-visible journey controls and preferences, with all returned routes shown.

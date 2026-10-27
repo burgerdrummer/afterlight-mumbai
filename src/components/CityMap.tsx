@@ -1,17 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import type { FeatureCollection, Feature } from 'geojson';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Cctv, Layers3, LocateFixed, Minus, Plus, Maximize2 } from 'lucide-react';
+import { Cctv, Lightbulb, Layers3, LocateFixed, Minus, Plus, Maximize2 } from 'lucide-react';
 import type { CameraPoint, Coord, Landmark, JourneyRoute, RoutePlace, Snapshot } from '../core/types';
 import { routeChoices,routeColour,routeTitle } from '../core/presentation';
 import { extraTime,facilityKind } from '../core/journey';
 import { istTime } from '../core/hours';
 import { readJsonResponse } from '../core/dataset';
+import {lightingOverlay,LIGHTING_LABELS,LIGHTING_COLOURS,type LightingState} from '../core/lighting';
 maplibregl.setWorkerUrl(workerUrl);
 const empty:FeatureCollection={type:'FeatureCollection',features:[]};
-type Props={data:Snapshot;baseUrl:string;routes:JourneyRoute[];selected:number;origin:Landmark;destination:Landmark;showOpen:boolean;showHelp:boolean;showGaps:boolean;showCameras:boolean;focusedPlace?:RoutePlace|null;visibleIndices:number[];onPick:(coord:Coord)=>void;onRouteSelect:(index:number)=>void};
+type Props={data:Snapshot;baseUrl:string;routes:JourneyRoute[];selected:number;origin:Landmark;destination:Landmark;showOpen:boolean;showHelp:boolean;showGaps:boolean;showCameras:boolean;showLighting:boolean;focusedPlace?:RoutePlace|null;visibleIndices:number[];onPick:(coord:Coord)=>void;onRouteSelect:(index:number)=>void};
 function textPopup(title:string,paragraphs:string[],source?:string){
   const el=document.createElement('div'),heading=document.createElement('strong');heading.textContent=title;el.append(heading);
   paragraphs.forEach(text=>{const p=document.createElement('p');p.textContent=text;el.append(p);});
@@ -19,11 +20,18 @@ function textPopup(title:string,paragraphs:string[],source?:string){
   return el;
 }
 function placePopup(p:RoutePlace){return textPopup(p.name,[`${facilityKind(p)} · ${p.state==='open'?'Listed open':p.state==='closed'?'Listed closed':'Hours unknown'} around ${istTime(p.passingAt)}`,p.hours?`Schedule: ${p.hours}`:'No opening schedule recorded.',`${p.provider||'OpenStreetMap'} · ${p.checked?'Recorded check: '+p.checked:'No field-check date'}. Entrance and reachability unverified.`],p.source||`https://www.openstreetmap.org/${p.id}`);}
+function lightingPopupContent(feature:maplibregl.MapGeoJSONFeature){
+  const value=feature.properties?.state,state:LightingState=value==='lit'||value==='unlit'?value:'unknown';
+  const way=String(feature.properties?.wayId||'');
+  return textPopup(LIGHTING_LABELS[state],[`Recorded lit tag: ${feature.properties?.tags||'not recorded'}`,state==='unknown'?'No usable lighting classification is recorded here.':'This is a mapped street tag, not a live observation.'],/^\d+$/.test(way)?`https://www.openstreetmap.org/way/${way}`:undefined);
+}
 export function CityMap(props:Props){
-  const {data,baseUrl,routes,selected,origin,destination,showOpen,showHelp,showGaps,showCameras}=props;
+  const {data,baseUrl,routes,selected,origin,destination,showOpen,showHelp,showGaps,showCameras,showLighting}=props;
   const container=useRef<HTMLDivElement>(null),mapRef=useRef<maplibregl.Map|null>(null),markers=useRef<maplibregl.Marker[]>([]),latest=useRef(props);
   latest.current=props;
   const visibleKey=props.visibleIndices.join(',');
+  const lighting=useMemo(()=>lightingOverlay(routes[selected]?.evidence||[]),[routes,selected]);
+  const lightingPopupRef=useRef<maplibregl.Popup|null>(null);
   const [ready,setReady]=useState(false),[mapError,setMapError]=useState(false),[detailNote,setDetailNote]=useState('');
   useEffect(()=>{
     if(!container.current)return;
@@ -54,6 +62,8 @@ export function CityMap(props:Props){
         if(cameraFeature){const p=current.data.cameras?.find(p=>p.id===cameraFeature.properties?.id);if(p){new maplibregl.Popup({offset:14}).setLngLat(p.coord).setDOMContent(textPopup(p.name,[`${p.type==='unspecified'?'Equipment type unspecified':p.type} · ${p.operator||'Operator not recorded'}`,`Operational status: ${p.status.replaceAll('_',' ')}. Coverage and monitoring are not verified.`,p.checked?`Recorded check date: ${p.checked}`:'No field-check date recorded.'],p.source)).addTo(map);return;}}
         const placeFeature=map.getLayer('listed-places')?map.queryRenderedFeatures(e.point,{layers:['listed-places']})[0]:null;
         if(placeFeature){const p=current.routes[current.selected]?.places.find(p=>p.id===placeFeature.properties?.id);if(p){new maplibregl.Popup({offset:14}).setLngLat(p.coord).setDOMContent(placePopup(p)).addTo(map);return;}}
+        const lightFeature=current.showLighting&&map.getLayer('lighting-casing')?map.queryRenderedFeatures(e.point,{layers:['lighting-casing']})[0]:null;
+        if(lightFeature){hover?.remove();lightingPopupRef.current?.remove();lightingPopupRef.current=new maplibregl.Popup({offset:14}).setLngLat(e.lngLat).setDOMContent(lightingPopupContent(lightFeature)).addTo(map);return;}
         const journeyFeature=map.getLayer('alternatives')?map.queryRenderedFeatures(e.point,{layers:['alternatives','route-main']})[0]:null;
         if(journeyFeature){current.onRouteSelect(Number(journeyFeature.properties?.index)||0);return;}
         current.onPick([e.lngLat.lng,e.lngLat.lat]);
@@ -62,9 +72,12 @@ export function CityMap(props:Props){
       map.on('mousemove',e=>{
         if(!map.getLayer('listed-places'))return;
         const feature=map.queryRenderedFeatures(e.point,{layers:['listed-places']})[0];
-        const id=feature?.properties?.id||'';if(id===hoverId)return;hoverId=id;hover?.remove();map.getCanvas().style.cursor=id?'pointer':'';
+        const lightFeature=!feature&&latest.current.showLighting&&map.getLayer('lighting-casing')?map.queryRenderedFeatures(e.point,{layers:['lighting-casing']})[0]:null;
+        const id=feature?.properties?.id||(lightFeature?'lighting-'+lightFeature.properties?.state+'-'+lightFeature.properties?.tags+'-'+lightFeature.properties?.wayId:'');
+        if(id===hoverId){if(lightFeature)hover?.setLngLat(e.lngLat);return;}hoverId=id;hover?.remove();map.getCanvas().style.cursor=id?'pointer':'';
         const p=latest.current.routes[latest.current.selected]?.places.find(p=>p.id===id);
         if(p)hover=new maplibregl.Popup({offset:12,closeButton:false,closeOnClick:true}).setLngLat(p.coord).setDOMContent(placePopup(p)).addTo(map);
+        else if(lightFeature)hover=new maplibregl.Popup({offset:12,closeButton:false,closeOnClick:true}).setLngLat(e.lngLat).setDOMContent(lightingPopupContent(lightFeature)).addTo(map);
       });
       map.on('mouseout',()=>{hover?.remove();hoverId='';});
     }catch{setMapError(true);return;}
@@ -102,10 +115,23 @@ export function CityMap(props:Props){
     }
   },[ready,routes,selected,visibleKey]);
   useEffect(()=>{
+    const map=mapRef.current;if(!ready||!map)return;
+    const data=showLighting?lighting.collection:empty;
+    if(map.getSource('lighting'))(map.getSource('lighting') as maplibregl.GeoJSONSource).setData(data);
+    else{
+      map.addSource('lighting',{type:'geojson',data});
+      map.addLayer({id:'lighting-casing',source:'lighting',type:'line',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#fffef9','line-width':8,'line-offset':13}},'route-outline');
+      for(const state of ['lit','unlit','unknown'] as LightingState[]){
+        map.addLayer({id:'lighting-'+state,source:'lighting',type:'line',filter:['==',['get','state'],state],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':LIGHTING_COLOURS[state],'line-width':state==='unknown'?4:5,'line-offset':13,...(state==='lit'?{}:{'line-dasharray':state==='unlit'?[1.4,1.1]:[.3,1.8]})}},'route-outline');
+      }
+    }
+  },[ready,lighting,showLighting]);
+  useEffect(()=>{lightingPopupRef.current?.remove();lightingPopupRef.current=null;},[showLighting,selected]);
+  useEffect(()=>{
     const map=mapRef.current;if(!ready||!map||!routes.length)return;
     const bounds=new maplibregl.LngLatBounds();props.visibleIndices.forEach(i=>routes[i].coords.forEach(p=>bounds.extend(p)));
     const mobile=window.matchMedia('(max-width:800px)').matches;
-    map.resize();map.fitBounds(bounds,{padding:mobile?{top:65,bottom:45,left:35,right:55}:{top:70,bottom:60,left:65,right:65},maxZoom:15.8,duration:0});
+    map.resize();map.fitBounds(bounds,{padding:mobile?{top:65,bottom:105,left:35,right:55}:{top:70,bottom:105,left:65,right:65},maxZoom:15.8,duration:0});
   },[ready,routes,visibleKey]);
   useEffect(()=>{
     const map=mapRef.current;if(!ready||!map)return;
@@ -129,7 +155,7 @@ export function CityMap(props:Props){
     const features:FeatureCollection={type:'FeatureCollection',features:showGaps&&r?r.segments.filter(s=>!s.openNearby&&s.coords).map(s=>({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:s.coords!}})):[]};
     if(map.getSource('gaps'))(map.getSource('gaps') as maplibregl.GeoJSONSource).setData(features);else{map.addSource('gaps',{type:'geojson',data:features});map.addLayer({id:'gap-lines',source:'gaps',type:'line',paint:{'line-color':'#c28e43','line-width':3,'line-dasharray':[1,2]}});}
   },[ready,routes,selected,showGaps]);
-  function fit(){const map=mapRef.current,r=routes[selected];if(!map||!r)return;const b=new maplibregl.LngLatBounds();r.coords.forEach(p=>b.extend(p));const mobile=window.matchMedia('(max-width:800px)').matches;map.fitBounds(b,{padding:mobile?{top:65,bottom:45,left:35,right:55}:70,maxZoom:15.8,duration:0});}
+  function fit(){const map=mapRef.current,r=routes[selected];if(!map||!r)return;const b=new maplibregl.LngLatBounds();r.coords.forEach(p=>b.extend(p));const mobile=window.matchMedia('(max-width:800px)').matches;map.fitBounds(b,{padding:mobile?{top:65,bottom:105,left:35,right:55}:{top:70,bottom:105,left:70,right:70},maxZoom:15.8,duration:0});}
   const selectedRoute=routes[selected],choices=routeChoices(routes);
-  return <section className="map-panel" aria-label="Route comparison map"><div ref={container} className="map-canvas"/>{mapError&&<div className="map-fallback"><Layers3 size={28}/><h3>Map unavailable</h3><p>Your route choices are still available.</p></div>}{selectedRoute&&<div className="map-route-pill" style={{borderColor:routeColour(selected,choices)}}><i style={{background:routeColour(selected,choices)}}/><strong>{routeTitle(selected,choices)}</strong><span>{Math.ceil(selectedRoute.minutes)} min</span></div>}<div className="map-tools"><button aria-label="Zoom in" onClick={()=>mapRef.current?.zoomIn()}><Plus size={19}/></button><button aria-label="Zoom out" onClick={()=>mapRef.current?.zoomOut()}><Minus size={19}/></button><span/><button aria-label="Fit route to map" onClick={fit}><Maximize2 size={18}/></button></div>{detailNote&&<div className="map-detail-note">{detailNote}</div>}</section>;
+  return <section className="map-panel" aria-label="Route comparison map"><div ref={container} className="map-canvas"/>{mapError&&<div className="map-fallback"><Layers3 size={28}/><h3>Map unavailable</h3><p>Your route choices are still available.</p></div>}{selectedRoute&&<div className="map-route-pill" style={{borderColor:routeColour(selected,choices)}}><i style={{background:routeColour(selected,choices)}}/><strong>{routeTitle(selected,choices)}</strong><span>{Math.ceil(selectedRoute.minutes)} min</span></div>}{showLighting&&lighting.collection.features.length>0&&<div className="lighting-legend" aria-label="Lighting on selected route"><div><strong><Lightbulb size={13}/>Lighting · selected route</strong><span>Street tags · not live</span></div><ul>{(['lit','unlit','unknown'] as LightingState[]).map(state=><li key={state}><i className={`lighting-swatch ${state}`}/><span>{LIGHTING_LABELS[state]} <b>{Math.round(lighting.percent[state])}%</b></span></li>)}</ul></div>}<div className="map-tools"><button aria-label="Zoom in" onClick={()=>mapRef.current?.zoomIn()}><Plus size={19}/></button><button aria-label="Zoom out" onClick={()=>mapRef.current?.zoomOut()}><Minus size={19}/></button><span/><button aria-label="Fit route to map" onClick={fit}><Maximize2 size={18}/></button></div>{detailNote&&<div className="map-detail-note">{detailNote}</div>}</section>;
 }
