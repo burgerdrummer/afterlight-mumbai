@@ -1,0 +1,20 @@
+{
+  "area": "Bandra West, Mumbai",
+  "fetchedAt": "2026-10-27T07:10:49.583685+00:00",
+  "source": "https://api.openstreetmap.org/api/0.6/map?bbox=72.815,19.045,72.84,19.07",
+  "places": 914,
+  "placesWithHours": 70,
+  "placesWithCheckDate": 8,
+  "routingNodes": 5619,
+  "routingEdges": 6078,
+  "streetKm": 94.8,
+  "lightingCoverage": 55.9,
+  "sidewalkCoverage": 15.1,
+  "excludedWays": {
+    "road_type": 35,
+    "access": 661,
+    "pedestrian_area_without_path": 1
+  },
+  "verifiedHelpEntrances": 0,
+  "fieldValidated": false
+}

@@ -1,0 +1,10 @@
+import type { FeatureCollection } from 'geojson';
+export type Coord = [number, number];
+export type Edge = { a:number; b:number; length:number; way:string; name:string; kind:string; lit:string; sidewalk:string; surface:string };
+export type Place = { id:string; name:string; category:string; coord:Coord; hours:string|null; checked:string|null; updated:string|null; help:boolean; accessVerified:boolean };
+export type Landmark = { id:string; name:string; subtitle:string; node:number; coord:Coord; offset:number };
+export type Audit = { places:number; placesWithHours:number; placesWithCheckDate:number; routingNodes:number; routingEdges:number; streetKm:number; lightingCoverage:number; sidewalkCoverage:number; excludedWays:Record<string,number>; verifiedHelpEntrances:number; fieldValidated:boolean };
+export type Snapshot = { version:number; area:string; bbox:[number,number,number,number]; fetchedAt:string; source:string; licence:string; attribution:string; nodes:Coord[]; edges:Edge[]; places:Place[]; landmarks:Landmark[]; roads:FeatureCollection; surfaces:FeatureCollection; audit:Audit };
+export type HoursState = 'open'|'closed'|'unknown';
+export type RoutePlace = Place & { state:HoursState; passingAt:string; distance:number };
+export type Route = { id:string; title:string; description:string; nodes:number[]; edges:number[]; coords:Coord[]; distance:number; minutes:number; extraMinutes:number; lightingKnown:number; lightingYes:number; sidewalkKnown:number; longestGap:number; openCount:number; hoursKnown:number; nearbyCount:number; places:RoutePlace[]; support:number; reason:string; streetNames:string[]; segments:{edge:number;distance:number;startMinutes:number;openNearby:boolean;lit:string}[] };

@@ -118,4 +118,3 @@ Useful next steps: better time-dependent candidate generation; a replaceable dat
 Original app code: [MIT](LICENSE). Map data: **© OpenStreetMap contributors, ODbL-1.0**, independently of the code licence. Fonts: SIL Open Font License. The unmodified `opening_hours` library is LGPL-3.0-only; dependency notices, full bundled licence texts and source links are provided in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Inspired by Aevy TV's [NightWise demonstration](https://www.youtube.com/shorts/csS2MHxljfo). This is an independent implementation, not an endorsement or an affiliated product.
-
