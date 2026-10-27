@@ -5,3 +5,8 @@ dist
 .sites-runtime
 .env*
 data/raw
+.sites-runtime/
+work/
+__pycache__/
+*.pbf
+*.pkl

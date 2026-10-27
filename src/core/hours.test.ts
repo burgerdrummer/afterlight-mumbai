@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hoursState, istInputToDate } from './hours.ts';
+import { hoursState, istInputToDate, istDateTimeInput } from './hours.ts';
 
 test('evaluates Mumbai wall-clock time regardless of host timezone',()=>{
   for(const tz of ['UTC','America/New_York','Asia/Kolkata']){
@@ -20,4 +20,8 @@ test('missing, unsupported holiday and ambiguous hours remain unknown',()=>{
 });
 test('explicit input conversion uses IST, not computer local time',()=>{
   assert.equal(istInputToDate('2026-10-27T21:00').toISOString(),'2026-10-27T15:30:00.000Z');
+});
+test('automatic Mumbai date and time handle the IST date rollover',()=>{
+  assert.deepEqual(istDateTimeInput(new Date('2026-10-27T21:07:59Z')),{date:'2026-10-28',time:'02:37'});
+  assert.deepEqual(istDateTimeInput(new Date('2026-10-27T13:00:00Z')),{date:'2026-10-27',time:'18:30'});
 });

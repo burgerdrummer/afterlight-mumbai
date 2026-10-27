@@ -7,3 +7,9 @@ dist/
 *.tsbuildinfo
 data/raw/
 .DS_Store
+/work/
+*.pbf
+*.partial
+*.pkl
+__pycache__/
+*.py[cod]

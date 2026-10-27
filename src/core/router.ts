@@ -1,6 +1,7 @@
-import type { Snapshot, Coord, Route, RoutePlace } from './types';
+import type { Snapshot, Coord, Route, RoutePlace, CameraPoint,RoutingOptions } from './types';
 import { meters, pointSegmentDistance, formatDistance } from './geo';
 import { placeState } from './hours';
+import { SpatialGrid } from './spatial';
 
 class Heap {
   items:{node:number;cost:number}[]=[];
@@ -12,16 +13,24 @@ const litKnown=(lit:string)=>litYes(lit)||lit==='no';
 // Distance is a proximity signal, not a verified accessible entrance.
 export const PLACE_RADIUS=35;
 export class PilotRouter {
+  private options:RoutingOptions={avoidStairs:false,avoidTolls:false,avoidUnpaved:false};
+  setOptions(options:RoutingOptions){this.options=options;}
   data:Snapshot;
   adjacency:{to:number;edge:number}[][];
   nearby:{index:number;distance:number;t:number}[][];
+  nodeGrid:SpatialGrid;
+  cameraGrid:SpatialGrid;
   constructor(data:Snapshot){
     this.data=data;
+    this.nodeGrid=new SpatialGrid(data.nodes);
+    const placeGrid=new SpatialGrid(data.places.map(p=>p.coord));
+    this.cameraGrid=new SpatialGrid((data.cameras||[]).map(p=>p.coord));
     this.adjacency=data.nodes.map(()=>[]);
     data.edges.forEach((e,i)=>{this.adjacency[e.a].push({to:e.b,edge:i});this.adjacency[e.b].push({to:e.a,edge:i});});
     this.nearby=data.edges.map(e=>{
       const a=data.nodes[e.a],b=data.nodes[e.b];
-      return data.places.flatMap((p,index)=>{
+      return placeGrid.box(Math.min(a[0],b[0])-.0004,Math.min(a[1],b[1])-.0004,Math.max(a[0],b[0])+.0004,Math.max(a[1],b[1])+.0004).flatMap(index=>{
+        const p=data.places[index];
         if(p.coord[0]<Math.min(a[0],b[0])-.0004||p.coord[0]>Math.max(a[0],b[0])+.0004||p.coord[1]<Math.min(a[1],b[1])-.0004||p.coord[1]>Math.max(a[1],b[1])+.0004)return [];
         const {distance,t}=pointSegmentDistance(p.coord,a,b);
         return distance<=PLACE_RADIUS?[{index,distance,t}]:[];
@@ -36,6 +45,8 @@ export class PilotRouter {
       const current=queue.pop();if(current.cost!==costs[current.node])continue;if(current.node===end)break;
       for(const link of this.adjacency[current.node]){
         const e=this.data.edges[link.edge];
+        if(this.options.avoidStairs&&e.kind==='steps')continue;
+        if(this.options.avoidUnpaved&&['unpaved','gravel','dirt','ground','sand','mud'].includes(e.surface))continue;
         // Prefer documented positive context. Unknown is never described as dark,
         // closed, or unsafe. The coefficient is an uncalibrated preference.
         const context=(litYes(e.lit)?.45:0)+(open[link.edge]?.55:0);
@@ -51,9 +62,16 @@ export class PilotRouter {
   analyze(path:{nodes:number[];edges:number[]},departure:Date):Route {
     let distance=0,minutes=0,known=0,yes=0,sidewalk=0,gap=0,longest=0,openDistance=0;
     const places=new Map<string,RoutePlace>();
+    const cameras=new Map<string,NonNullable<Snapshot['cameras']>[number]>();
+    const steps:{name:string;distance:number}[]=[];
     const segments:Route['segments']=[];
     path.edges.forEach((i,idx)=>{
       const e=this.data.edges[i],duration=this.edgeMinutes(i);
+      const lastStep=steps[steps.length-1];if(lastStep?.name===e.name)lastStep.distance+=e.length;else steps.push({name:e.name,distance:e.length});
+      const a=this.data.nodes[e.a],b=this.data.nodes[e.b];
+      for(const cameraId of this.cameraGrid.box(Math.min(a[0],b[0])-.0005,Math.min(a[1],b[1])-.0005,Math.max(a[0],b[0])+.0005,Math.max(a[1],b[1])+.0005)){
+        const camera=this.data.cameras![cameraId];if(pointSegmentDistance(camera.coord,a,b).distance<=50)cameras.set(camera.id,camera);
+      }
       let openNearby=false;
       for(const near of this.nearby[i]){
         const p=this.data.places[near.index];
@@ -68,18 +86,20 @@ export class PilotRouter {
       if(litYes(e.lit))yes+=e.length;
       if(e.sidewalk!=='unknown')sidewalk+=e.length;
       if(openNearby){longest=Math.max(longest,gap);gap=0;openDistance+=e.length;}else gap+=e.length;
-      segments.push({edge:i,distance:e.length,startMinutes:minutes,openNearby,lit:e.lit});
+      segments.push({edge:i,distance:e.length,startMinutes:minutes,openNearby,lit:e.lit,coords:[a,b]});
       distance+=e.length;minutes+=duration;
     });
     longest=Math.max(longest,gap);
     const all=[...places.values()];
-    return {id:path.edges.join('-'),title:'',description:'',nodes:path.nodes,edges:path.edges,coords:path.nodes.map(i=>this.data.nodes[i]),distance,minutes,extraMinutes:0,lightingKnown:known/distance*100,lightingYes:yes/distance*100,sidewalkKnown:sidewalk/distance*100,longestGap:longest,openCount:all.filter(p=>p.state==='open').length,hoursKnown:all.filter(p=>p.state!=='unknown').length,nearbyCount:all.length,places:all,support:(yes*.45+openDistance*.55)/distance,reason:'',streetNames:[...new Set(path.edges.map(i=>this.data.edges[i].name))].filter(n=>!n.startsWith('Unnamed')),segments};
+    return {id:path.edges.join('-'),title:'',description:'',nodes:path.nodes,edges:path.edges,coords:path.nodes.map(i=>this.data.nodes[i]),distance,minutes,extraMinutes:0,lightingKnown:known/distance*100,lightingYes:yes/distance*100,sidewalkKnown:sidewalk/distance*100,longestGap:longest,openCount:all.filter(p=>p.state==='open').length,hoursKnown:all.filter(p=>p.state!=='unknown').length,nearbyCount:all.length,places:all,support:(yes*.45+openDistance*.55)/distance,reason:'',streetNames:[...new Set(path.edges.map(i=>this.data.edges[i].name))].filter(n=>!n.startsWith('Unnamed')),segments,steps,cameras:[...cameras.values()]};
   }
   routes(start:number,end:number,departure:Date,maxDetour:number):Route[]{
-    if(!this.data.nodes[start]||!this.data.nodes[end])throw new Error('Choose locations inside the Bandra pilot.');
+    if(!this.data.nodes[start]||!this.data.nodes[end])throw new Error('Choose locations inside the imported Mumbai walking network.');
     if(start===end)throw new Error('Choose two different locations.');
     if(!Number.isFinite(departure.getTime()))throw new Error('Choose a valid departure time.');
-    const open=this.nearby.map(ps=>ps.some(p=>placeState(this.data.places[p.index],departure)==='open'));
+    if(this.data.components&&this.data.components[start]!==this.data.components[end])throw new Error('These points belong to separate mapped walking networks. Choose another street approach; we do not invent connecting paths.');
+    const states=this.data.places.map(p=>placeState(p,departure));
+    const open=this.nearby.map(ps=>ps.some(p=>states[p.index]==='open'));
     const shortest=this.path(start,end,0,open);
     if(!shortest)throw new Error('These points are not connected by a mapped walking route.');
     const base=this.analyze(shortest,departure);
@@ -111,5 +131,6 @@ export class PilotRouter {
     });
     return results;
   }
-  nearest(coord:Coord){let node=0,distance=Infinity;this.data.nodes.forEach((p,i)=>{const d=meters(coord,p);if(d<distance){distance=d;node=i;}});return {node,distance};}
+  nearest(coord:Coord){let node=-1,distance=Infinity;for(const radius of [100,250,500,1000]){for(const i of this.nodeGrid.around(coord,radius)){const d=meters(coord,this.data.nodes[i]);if(d<distance){distance=d;node=i;}}if(distance<=radius)break;}return {node,distance};}
+  setCameras(cameras:CameraPoint[]){this.data.cameras=cameras;this.cameraGrid=new SpatialGrid(cameras.map(c=>c.coord));}
 }

@@ -49,3 +49,11 @@ test('disconnected graph points produce an error, not a straight connector',()=>
   const fixture=structuredClone(data);fixture.nodes.push([72.825,19.05]);
   assert.throws(()=>new PilotRouter(fixture).routes(0,fixture.nodes.length-1,departure,10),/not connected/);
 });
+test('mapped cameras do not influence route ranking',()=>{
+  const a=data.landmarks[0].node,b=data.landmarks[1].node;
+  const before=router.routes(a,b,departure,10);
+  router.setCameras([{id:'test-only',name:'Synthetic test fixture',coord:before[0].coords[1],type:'camera',status:'unverified',source:'https://example.org/test-fixture',licence:'CC0-1.0'}]);
+  const after=router.routes(a,b,departure,10);
+  assert.deepEqual(after.map(r=>r.edges),before.map(r=>r.edges));assert.ok(after[0].cameras?.length);
+  router.setCameras([]);
+});

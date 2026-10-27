@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "Afterlight Mumbai",
+  "short_name": "Afterlight",
+  "description": "Compare walks, bike rides and car routes across Mumbai.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fafbf7",
+  "theme_color": "#173e38",
+  "lang": "en-IN",
+  "icons": [
+    {"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}

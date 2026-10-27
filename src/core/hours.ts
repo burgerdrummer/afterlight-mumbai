@@ -28,4 +28,8 @@ export function istDateInput(now=new Date()) {
   const ist=new Date(now.getTime()+330*60000);
   return `${ist.getUTCFullYear()}-${String(ist.getUTCMonth()+1).padStart(2,'0')}-${String(ist.getUTCDate()).padStart(2,'0')}`;
 }
+export function istDateTimeInput(now=new Date()) {
+  const ist=new Date(now.getTime()+330*60000);
+  return {date:istDateInput(now),time:`${String(ist.getUTCHours()).padStart(2,'0')}:${String(ist.getUTCMinutes()).padStart(2,'0')}`};
+}
 export const istTime=(instant:string|Date) => new Intl.DateTimeFormat('en-IN',{timeZone:'Asia/Kolkata',hour:'2-digit',minute:'2-digit',hour12:true}).format(new Date(instant));

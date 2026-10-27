@@ -18,6 +18,13 @@ DM Sans and Manrope are bundled locally, under SIL Open Font License 1.1. Font c
 
 ## Other principal libraries
 
+- Additional facility records: Overture Maps Foundation and its recorded providers.
+  See `public/licenses/data/OVERTURE-NOTICES.md` and the downloadable per-record
+  provenance database. Combined OSM-derived data retains ODbL attribution.
+- Local routing: Valhalla / pyvalhalla, MIT, <https://github.com/valhalla/valhalla>.
+  Optional Python libraries retain their distributed notices and are installed
+  separately; their binaries are not included in the source archive.
+
 - React and React DOM: MIT, <https://github.com/facebook/react>.
 - MapLibre GL JS: BSD-3-Clause, <https://github.com/maplibre/maplibre-gl-js>.
 - Lucide: ISC, <https://github.com/lucide-icons/lucide>.

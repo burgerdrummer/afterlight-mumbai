@@ -1,27 +1,51 @@
-# Contributing to Afterlight
+# Contributing
 
-Run `npm ci`, `npm test`, `npm run audit:data`, and `npm run build` before opening a pull request. Use small, reviewable changes and explain the user-visible effect and how it was verified.
+Code changes: install with `npm ci`, run `npm test`, `npm run audit:data` and
+`npm run build`. For routing changes also prepare the local Valhalla graph and
+run the native tests described in README.md. Include the trigger, expected
+behaviour and validation in a pull request.
 
-## Data and methodology
+## Better facility and opening-hour data
 
-- Preserve explicit unknowns. Do not fill missing lighting, hours, crowds or accessibility with invented values.
-- Keep map facts, derived contextual signals and personal perceptions distinct.
-- A point near a route is not a verified entrance. Do not describe it as accessible until the connection has been audited.
-- Add source, collection/check date, methodology and reuse licence for new datasets. Do not copy proprietary map data.
-- Keep original OSM attribution and data licensing. Do not imply that the MIT code licence covers OSM-derived databases.
-- Explain changes to ranking weights. Add regression cases for a concrete failure rather than assuming a higher score means greater safety.
+Submit reviewed public-business/facility records in
+`data/community-places.geojson`, which starts as an empty FeatureCollection.
+Do not include personal home addresses, individual travel histories, private
+contact details, proprietary map extracts or unlicensed directories.
 
-## Local evaluation
+Each Point feature requires:
 
-Do not encourage anyone to walk an unfamiliar route at night solely to test this app. Start with desk review and voluntary feedback from people already familiar with the area. Obtain consent for research participation; avoid collecting identifiable incident reports or precise travel histories in public issues.
+- Stable feature `id` (use the existing source ID for a correction, otherwise a
+  `community/` prefix), a public facility name, and category.
+- Coordinates within Mumbai City/Suburban districts.
+- `properties.source`: an HTTP(S) public source that supports the record.
+- `properties.licence`: explicit permission to redistribute the submitted data.
+- Optional `opening_hours` using OSM syntax, `checked` as YYYY-MM-DD, `phone`,
+  `website` and `emergency` (only if the service is documented).
 
-## Privacy and scope
+No sample shops or camera points are invented for the real dataset. For syntax
+examples, see https://wiki.openstreetmap.org/wiki/Key:opening_hours . A date you
+edited a record is not a field-check date. A hospital's existence is not proof
+of a 24-hour emergency department. Report an unknown hour as unknown.
 
-Do not add analytics, continuous tracking, incident publication, emergency messaging, or account requirements without a documented design discussion. Report software errors with a minimal reproduction and non-sensitive example journey.
+The importer validates source, licence, IDs, coordinates and check dates. Review
+submissions before merging; repeat `scripts/enrich_places.py` to apply them and
+run the data audit. Access verification remains false unless a future reviewed
+verification workflow independently establishes entrances and service access.
 
-## Suggested first issues
+OSM-derived data retains ODbL requirements; other providers retain their own
+notices. Prefer improving OSM itself where appropriate rather than maintaining
+an unreviewed parallel database. Never copy Google Maps listings into OSM.
 
-1. Validate opening hours and pedestrian access for a small set of consenting local reviewers' familiar journeys.
-2. Improve keyboard interactions in the landmark selector and run a formal accessibility audit.
-3. Improve candidate generation using time-of-passing rather than departure-only schedules.
-4. Investigate licensed, dated lighting and footpath data for another Mumbai pilot area.
+## Public emergency contacts
+
+Changes to `src/core/contacts.ts` need an official supporting URL and a review
+date. Keep emergency calls separate from non-emergency reporting/WhatsApp.
+Do not test-call emergency services as part of automated QA. Numbers, service
+areas and published role descriptions can change; retain the source on screen.
+
+## Scoring
+
+Keep weights, unknown treatment and version explicit in SCORING.md and source.
+Add meaningful regression checks for changes that could inflate evidence,
+violate a detour/access constraint, or misrepresent missing data. No neighbourhood
+crime/safety labels may be inferred from mapping density or cameras.
