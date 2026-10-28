@@ -1,8 +1,8 @@
 # v0.8 lighting layer
 
 - Added a Lighting toggle, enabled by default, alongside Places / Help / CCTV.
-- Parallel lighting strip on the selected route: amber solid (tagged lit),
-  charcoal dashed (tagged unlit), grey dotted (unknown).
+- Thin parallel lighting strip on the selected route: charcoal solid (tagged lit),
+  near-black dashed (tagged unlit), light-grey dotted (unknown).
 - On-map legend with length-weighted percentages, plus hover/tap tag details.
 - Uses existing route evidence; does not alter routing, scores or export geometry.
 - Continuous same-state geometry is merged without bridging gaps or mutating data.

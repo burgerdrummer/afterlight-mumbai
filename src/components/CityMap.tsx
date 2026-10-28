@@ -120,9 +120,9 @@ export function CityMap(props:Props){
     if(map.getSource('lighting'))(map.getSource('lighting') as maplibregl.GeoJSONSource).setData(data);
     else{
       map.addSource('lighting',{type:'geojson',data});
-      map.addLayer({id:'lighting-casing',source:'lighting',type:'line',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#fffef9','line-width':8,'line-offset':13}},'route-outline');
+      map.addLayer({id:'lighting-casing',source:'lighting',type:'line',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#fffef9','line-width':6,'line-offset':13}},'route-outline');
       for(const state of ['lit','unlit','unknown'] as LightingState[]){
-        map.addLayer({id:'lighting-'+state,source:'lighting',type:'line',filter:['==',['get','state'],state],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':LIGHTING_COLOURS[state],'line-width':state==='unknown'?4:5,'line-offset':13,...(state==='lit'?{}:{'line-dasharray':state==='unlit'?[1.4,1.1]:[.3,1.8]})}},'route-outline');
+        map.addLayer({id:'lighting-'+state,source:'lighting',type:'line',filter:['==',['get','state'],state],layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':LIGHTING_COLOURS[state],'line-width':state==='unknown'?3:3.5,'line-offset':13,...(state==='lit'?{}:{'line-dasharray':state==='unlit'?[1.4,1.1]:[.3,1.8]})}},'route-outline');
       }
     }
   },[ready,lighting,showLighting]);

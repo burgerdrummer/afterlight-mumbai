@@ -3,7 +3,7 @@ import type {SegmentEvidence} from './types';
 
 export type LightingState='lit'|'unlit'|'unknown';
 export const LIGHTING_LABELS:Record<LightingState,string>={lit:'Tagged lit',unlit:'Tagged unlit',unknown:'Unknown'};
-export const LIGHTING_COLOURS:Record<LightingState,string>={lit:'#d99a00',unlit:'#374151',unknown:'#8d99a7'};
+export const LIGHTING_COLOURS:Record<LightingState,string>={lit:'#52525b',unlit:'#18181b',unknown:'#9ca3af'};
 export function lightingState(value:string|undefined|null):LightingState{
   if(['yes','24/7','automatic','sunset-sunrise'].includes(value||''))return 'lit';
   return value==='no'?'unlit':'unknown';
